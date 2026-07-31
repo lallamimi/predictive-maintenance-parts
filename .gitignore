@@ -18,6 +18,7 @@ data/processed/*
 # Django
 *.sqlite3
 staticfiles/
+logs/
 
 # Secrets
 .env
