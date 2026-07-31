@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pkl
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Données (générées localement, non versionnées)
+data/raw/*
+!data/raw/.gitkeep
+data/synthetic/*
+!data/synthetic/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Django
+*.sqlite3
+staticfiles/
+
+# Secrets
+.env
+.env.local
+
+# Node / React
+node_modules/
+dist/
+build/
+
+# Éditeurs / OS
+.vscode/
+.idea/
+*:Zone.Identifier
+.DS_Store
