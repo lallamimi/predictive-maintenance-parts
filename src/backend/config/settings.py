@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "inventory",
     "maintenance",
     "recommendations",
+    "ml_api",
 ]
 
 MIDDLEWARE = [
