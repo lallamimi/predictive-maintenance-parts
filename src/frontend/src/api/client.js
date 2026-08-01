@@ -51,6 +51,11 @@ export const dataApi = {
   kpi: () => apiFetch("/api/data/interventions/kpi/"),
   pieces: () => apiFetch("/api/data/pieces/"),
   piecesSousSeuil: () => apiFetch("/api/data/pieces/sous_seuil/"),
+  ajusterStock: (pieceId, nouveauStock) =>
+    apiFetch(`/api/data/pieces/${pieceId}/ajuster-stock/`, {
+      method: "PATCH",
+      body: { nouveau_stock: nouveauStock },
+    }),
 };
 
 export const mlApi = {

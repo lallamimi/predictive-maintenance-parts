@@ -213,6 +213,21 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.stock-form {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stock-form h3 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
 @media (max-width: 640px) {
   .predict-form {
     grid-template-columns: 1fr;

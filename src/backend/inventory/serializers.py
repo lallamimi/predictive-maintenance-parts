@@ -27,3 +27,7 @@ class PieceRechangeSerializer(serializers.ModelSerializer):
             "seuil_reapprovisionnement",
             "sous_le_seuil",
         ]
+
+
+class AjusterStockSerializer(serializers.Serializer):
+    nouveau_stock = serializers.IntegerField(min_value=0)
