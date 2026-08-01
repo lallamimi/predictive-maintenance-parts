@@ -14,18 +14,23 @@ export default function RecommendationPanel() {
       .finally(() => setLoading(false));
   }, []);
 
+  const isGroq = reco?.source === "groq";
+
   return (
     <section aria-labelledby="reco-title" className="panel reco-panel">
-      <h2 id="reco-title">Recommandation</h2>
+      <h2 id="reco-title"><span aria-hidden="true">💡</span> Recommandation</h2>
       {loading && <p>Chargement de la recommandation...</p>}
       {error && <p role="alert" className="error-message">{error}</p>}
       {reco && (
-        <>
-          <p>{reco.recommandation}</p>
-          <p className="reco-source">
-            Source : {reco.source === "groq" ? "IA générative (Groq)" : "règles automatiques (service IA non configuré)"}
-          </p>
-        </>
+        <div className="reco-body">
+          <span className="reco-icon" aria-hidden="true">{isGroq ? "🤖" : "📐"}</span>
+          <div className="reco-text">
+            <p>{reco.recommandation}</p>
+            <span className="reco-source">
+              {isGroq ? "🤖 IA générative (Groq)" : "📐 Règles automatiques (service IA non configuré)"}
+            </span>
+          </div>
+        </div>
       )}
     </section>
   );

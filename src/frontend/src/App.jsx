@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import "./App.css";
@@ -8,7 +9,7 @@ function AppContent() {
 
   if (loading) {
     return (
-      <main aria-live="polite">
+      <main aria-live="polite" className="login-page">
         <p>Chargement...</p>
       </main>
     );
@@ -19,8 +20,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

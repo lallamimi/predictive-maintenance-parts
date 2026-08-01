@@ -11,6 +11,7 @@ const DEFAULTS = {
 };
 
 const RISK_LABELS = { eleve: "Élevé", moyen: "Moyen", faible: "Faible" };
+const RISK_ICONS = { eleve: "🔴", moyen: "🟠", faible: "🟢" };
 
 export default function PredictFailureForm() {
   const [form, setForm] = useState(DEFAULTS);
@@ -39,7 +40,7 @@ export default function PredictFailureForm() {
 
   return (
     <section aria-labelledby="predict-failure-title" className="panel">
-      <h2 id="predict-failure-title">Prédiction de panne</h2>
+      <h2 id="predict-failure-title"><span aria-hidden="true">🔍</span> Prédiction de panne</h2>
       <form onSubmit={handleSubmit} className="predict-form">
         <label htmlFor="temp_air">Température air (K)</label>
         <input
@@ -84,7 +85,7 @@ export default function PredictFailureForm() {
         </select>
 
         <button type="submit" disabled={loading}>
-          {loading ? "Analyse..." : "Analyser le risque"}
+          {loading ? "Analyse..." : "🔍 Analyser le risque"}
         </button>
       </form>
 
@@ -92,10 +93,16 @@ export default function PredictFailureForm() {
 
       {result && (
         <div className={`predict-result risk-${result.niveau_risque}`} role="status">
-          <p>
-            <strong>{result.panne_predite ? "Panne probable" : "Pas de panne prévue"}</strong> — probabilité{" "}
-            {(result.probabilite * 100).toFixed(1)} % (risque {RISK_LABELS[result.niveau_risque]})
-          </p>
+          <span className="result-icon" aria-hidden="true">{RISK_ICONS[result.niveau_risque]}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p>
+              <strong>{result.panne_predite ? "Panne probable" : "Pas de panne prévue"}</strong> — probabilité{" "}
+              {(result.probabilite * 100).toFixed(1)} % (risque {RISK_LABELS[result.niveau_risque]})
+            </p>
+            <div className="risk-bar-track">
+              <div className="risk-bar-fill" style={{ width: `${Math.min(100, result.probabilite * 100)}%` }} />
+            </div>
+          </div>
         </div>
       )}
     </section>
