@@ -26,8 +26,10 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:8080
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       ML_MODELS_DIR: /app/models
+      DATA_DIR: /app/data
     volumes:
       - ./data/processed/models:/app/models:ro  # modeles entraines, montes en lecture seule
+      - ./data:/app/data:ro  # synthetic/ + processed/ pour `manage.py load_dataset`
     ports:
       - "8000:8000"
     healthcheck:

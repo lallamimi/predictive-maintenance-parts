@@ -38,20 +38,52 @@ tests/         # Suite de tests (pytest)
 
 Voir [`docs/architecture.md`](docs/architecture.md) pour l'architecture complète et [`docs/cahier_des_charges.md`](docs/cahier_des_charges.md) pour les spécifications fonctionnelles.
 
+### Option A — Docker Compose (le plus simple)
+
 ```bash
-# 1. Collecte des données
+cp .env.example .env   # a la racine ; laisser GROQ_API_KEY vide desactive juste les recommandations IA
+docker compose up -d --build
+
+# Charger des donnees de demonstration dans la base (une fois les conteneurs "healthy")
+docker compose exec backend python manage.py load_dataset --reset
+
+# Creer un compte de test (role: technicien | gestionnaire_stock | admin)
+curl -X POST http://localhost:8000/api/auth/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo","email":"demo@test.local","password":"DemoTest1234!","role":"admin"}'
+```
+
+- Frontend : http://localhost:8080 (se connecter avec le compte créé ci-dessus)
+- API : http://localhost:8000/api/ — doc interactive sur http://localhost:8000/api/docs/
+- Santé : http://localhost:8000/api/health/
+
+### Option B — En local, sans Docker (utile en développement, hot-reload)
+
+```bash
+# 1. Collecte + nettoyage des données (une seule fois, ou si data/processed est vide)
+pip install -r requirements.txt
 python src/collect/download_ai4i.py
 python src/collect/generate_synthetic_parts.py
-
-# 2. Nettoyage
 python src/clean/clean_maintenance.py
+python src/ml/train_failure_model.py
+python src/ml/train_demand_model.py
 
-# 3. Backend (à venir)
-cd src/backend && pip install -r requirements.txt && python manage.py migrate && python manage.py runserver
+# 2. Backend
+cd src/backend
+python -m venv .venv && .venv/Scripts/activate  # ou source .venv/bin/activate sous Linux/Mac
+pip install -r requirements.txt
+cp .env.example .env   # DATABASE_URL vide -> SQLite local
+python manage.py migrate
+python manage.py load_dataset --reset
+python manage.py runserver
 
-# 4. Frontend (à venir)
-cd src/frontend && npm install && npm run dev
+# 3. Frontend (autre terminal)
+cd src/frontend
+npm install
+npm run dev   # http://localhost:5173
 ```
+
+Dans les deux cas, aucun compte n'existe par défaut : il faut en créer un via `/api/auth/register/` (ou `python manage.py createsuperuser` pour l'admin Django `/admin/`).
 
 ## Suivi du projet
 
