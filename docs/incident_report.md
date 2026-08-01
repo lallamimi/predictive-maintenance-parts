@@ -1,5 +1,7 @@
 # Fiche incident (C21)
 
+## Incident 1 — `load_dataset` ne trouve pas le dataset
+
 ## Symptôme
 
 Lors du premier lancement de `python manage.py load_dataset --reset` (tâche C4/C5, backend Django), la commande échouait systématiquement avec le message :
@@ -70,4 +72,68 @@ Import termine : 5 fournisseurs, 5 pieces, 10000 lectures, 355 interventions.
 
 ## Retour d'expérience
 
-Ce type d'erreur (calcul manuel de chemin relatif par comptage de `parents[N]`) est facile à introduire et facile à corriger, mais silencieuse si aucun test ne vérifie explicitement le résultat. Leçon appliquée immédiatement au reste du projet : `src/backend/ml_api/model_registry.py` utilise le même pattern de calcul de chemin (`parents[3]`) — corrigé de façon préventive lors de la tâche C18/C19 (ajout d'un chemin explicite via variable d'environnement `ML_MODELS_DIR` pour l'exécution en conteneur Docker, où la structure de dossiers diffère de l'environnement local), avant qu'un incident similaire ne se produise.
+Ce type d'erreur (calcul manuel de chemin relatif par comptage de `parents[N]`) est facile à introduire et facile à corriger, mais silencieuse si aucun test ne vérifie explicitement le résultat. La tentative de traiter préventivement le même pattern ailleurs dans le projet (`ml_api/model_registry.py`) s'est révélée **incomplète** — voir Incident 2 ci-dessous, où exactement la même classe de bug a quand même provoqué un vrai échec, faute d'avoir traité le symptôme (calcul non conditionné) et pas seulement la valeur numérique.
+
+---
+
+## Incident 2 — le conteneur backend crashe au démarrage (CI `docker-build`)
+
+### Symptôme
+
+Le job CI `docker-build` échouait systématiquement à son étape de test de fumée : les images `backend` et `frontend` se construisaient sans erreur, mais le conteneur backend démarré à partir de l'image fraîchement construite sortait immédiatement, et `/api/health/` ne répondait jamais (timeout après le nombre de tentatives prévu).
+
+### Reproduction
+
+Non reproductible en local en dehors de Docker (`runserver` avec les mêmes variables d'environnement démarrait sans erreur). Reproduit uniquement en construisant et lançant réellement le conteneur :
+
+```bash
+docker build -t maintenance-predictive-backend:debug ./src/backend
+docker run -d --name debug-backend \
+  -e DJANGO_SECRET_KEY=cle-de-test-ci -e DJANGO_DEBUG=0 \
+  -e DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 -e ML_MODELS_DIR=/app/models \
+  -v "$PWD/data/processed/models:/app/models:ro" -p 8000:8000 \
+  maintenance-predictive-backend:debug
+docker ps -a   # -> Exited (1)
+docker logs debug-backend
+```
+
+### Diagnostic
+
+`docker logs` a montré un `IndexError: 3` dans `ml_api/model_registry.py`, levé pendant les vérifications système de Django au démarrage (avant même `migrate`) :
+
+```python
+_BASE_DIR = Path(__file__).resolve().parents[3]
+MODELS_DIR = Path(os.getenv("ML_MODELS_DIR") or (_BASE_DIR / "data" / "processed" / "models"))
+```
+
+Cette ligne calculait `_BASE_DIR` **inconditionnellement**, avant même de regarder si `ML_MODELS_DIR` était défini — seule la valeur finale de `MODELS_DIR` dépendait de la variable d'environnement, pas le calcul de `_BASE_DIR` lui-même. Or dans le conteneur, seul `src/backend/` est copié vers `/app/` (voir `Dockerfile`) : depuis `ml_api/model_registry.py`, `/app` n'a que 2 niveaux de parents avant la racine `/`. `.parents[3]` sort donc de la plage disponible et lève `IndexError` — contrairement à `.resolve()` qui, elle, ne lève jamais d'erreur sur un chemin trop court.
+
+**Cause racine** : même famille que l'Incident 1 (calcul de chemin par comptage de `parents[N]`), mais avec une nuance différente et plus dangereuse — ici la variable d'environnement de secours existait bien et était correctement branchée dans `docker-compose.yml` et dans le workflow CI, mais le code ne court-circuitait pas *l'évaluation* du chemin de repli, seulement son *usage final*. Un `or` protège contre une valeur `None`, pas contre une exception levée en calculant l'autre opérande.
+
+### Correction
+
+```diff
+-_BASE_DIR = Path(__file__).resolve().parents[3]
+-MODELS_DIR = Path(os.getenv("ML_MODELS_DIR") or (_BASE_DIR / "data" / "processed" / "models"))
++def _resolve_models_dir() -> Path:
++    env_value = os.getenv("ML_MODELS_DIR")
++    if env_value:
++        return Path(env_value)
++    base_dir = Path(__file__).resolve().parents[3]
++    return base_dir / "data" / "processed" / "models"
++
++
++MODELS_DIR = _resolve_models_dir()
+```
+
+`parents[3]` n'est plus jamais évalué quand `ML_MODELS_DIR` est déjà fourni — exactement le cas en conteneur et en CI.
+
+### Vérification
+
+- Image reconstruite en local, conteneur relancé avec les mêmes variables d'environnement que le smoke test CI : `docker ps -a` montre `Up` (plus de sortie immédiate), `docker logs` ne montre plus de traceback.
+- `curl http://localhost:8001/api/health/` → `{"status":"ok","checks":{"database":true,"groq_configured":false}}`.
+- Job `docker-build` sur GitHub Actions repassé au vert après le push du correctif (voir [`ci_cd.md`](ci_cd.md)).
+
+### Retour d'expérience
+
+Diagnostiqué en binôme avec le porteur du projet plutôt que documenté comme une limite non résolue : l'accès aux logs du job (via l'API GitHub non authentifiée, faute de connexion navigateur disponible) avait déjà permis de savoir *que* le conteneur ne répondait pas, mais pas *pourquoi* — il a fallu reproduire le conteneur en local (une fois Docker Desktop de nouveau disponible sur la machine) pour obtenir la trace exacte. Leçon durable : un calcul de chemin de repli conditionné par `X or Y` ne protège que si `Y` ne peut pas lever d'exception ; sinon, la condition doit empêcher son *évaluation*, pas seulement ignorer son résultat.

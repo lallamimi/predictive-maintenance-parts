@@ -43,16 +43,18 @@ cd src/frontend && npm ci && npm run lint && npm run build
 docker compose build
 ```
 
-## Limite connue (point ouvert)
+## Incident résolu — crash du conteneur backend au démarrage
 
-La vérification `docker compose build` / `docker compose up` en local nécessite que Docker Desktop soit démarré sur la machine — ce n'était pas garanti de façon fiable dans l'environnement de développement utilisé pour ce projet. La vérification de référence est donc le job `docker-build` de la CI (GitHub Actions, runners Linux).
+Le job `docker-build` a échoué pendant plusieurs itérations sur son test de fumée (démarrage du conteneur backend construit, sondage de `/api/health/`), alors que les deux images se construisaient sans erreur. Diagnostic complet dans [`incident_report.md`](incident_report.md) ; résumé ici côté CI/CD.
 
-**État actuel, en toute transparence** : dans ce job, les deux images (`backend`, `frontend`) **se construisent avec succès**. Le test de fumée qui démarre un conteneur depuis l'image backend construite et sonde `/api/health/` échoue en revanche systématiquement (timeout après 90 s), pour une cause non encore identifiée avec certitude — l'accès aux logs détaillés de ce job nécessite une connexion GitHub, indisponible dans l'environnement où ce diagnostic a été mené.
+**Cause** : `ml_api/model_registry.py` calculait inconditionnellement, au chargement du module, `Path(__file__).resolve().parents[3]` pour localiser les modèles entraînés en local. En conteneur, seul `src/backend/` est copié dans `/app/` (voir `Dockerfile`) : `/app` n'a que 2 niveaux de parents avant `/`, donc `parents[3]` lève `IndexError` — avant même que `ML_MODELS_DIR` (fourni explicitement dans le `docker run` du smoke test) ait la moindre chance d'être consulté, puisque le calcul n'était pas conditionné à son absence. Django plantait dès les vérifications système au démarrage, le conteneur sortait immédiatement (`Exited (1)`), et le sondage `/api/health/` échouait donc systématiquement après le timeout complet.
 
-Ce qui a été vérifié pour circonscrire le problème :
-- L'image se construit sans erreur (`pip install` de toutes les dépendances réussit dans le conteneur Linux).
-- La logique applicative elle-même n'est **pas** en cause : `migrate` puis le serveur de développement Django (`runserver`), lancés en dehors de Docker avec exactement les mêmes variables d'environnement que le test de fumée (`DJANGO_DEBUG=0`, sans `DATABASE_URL`, sans `GROQ_API_KEY`), démarrent sans erreur et `/api/health/` répond `200` immédiatement.
-- `collectstatic` a été retiré de la commande de démarrage (risque supprimé, sans effet observé sur le résultat).
-- La suspicion actuelle porte sur `gunicorn` spécifiquement en environnement conteneurisé (non testable en dehors de Docker sur la machine de développement utilisée, Windows, où `gunicorn` ne peut pas s'exécuter du tout — dépendance à `fcntl`, module Unix uniquement).
+**Pourquoi ça n'était pas détecté en local avant** : en dehors de Docker, `parents[3]` reste valide (structure de dossiers complète du dépôt) — le bug n'existe que dans la structure aplatie du conteneur, jamais reproduit par `runserver` en local.
 
-**Prochaine étape recommandée** : consulter les logs complets du job `docker-build` depuis un compte GitHub connecté (Actions → run le plus récent → job *Packaging Docker*), qui contiennent désormais (`docker ps -a` + `docker logs` systématiques, ajoutés lors de ce diagnostic) la trace exacte de l'échec du conteneur au démarrage.
+**Correction** : le calcul de repli est désormais dans une fonction `_resolve_models_dir()`, appelée seulement si `ML_MODELS_DIR` est absent — `parents[3]` n'est plus jamais évalué quand la variable d'environnement suffit (le cas du conteneur et de la CI).
+
+**Vérification** (une fois Docker Desktop de nouveau disponible sur la machine de développement) :
+- Reconstruction de l'image backend en local (`docker build`) : succès.
+- Conteneur démarré avec exactement les mêmes variables d'environnement que le smoke test CI (`DJANGO_SECRET_KEY`, `DJANGO_DEBUG=0`, `DJANGO_ALLOWED_HOSTS`, `ML_MODELS_DIR=/app/models` + volume monté) : migrations appliquées sans erreur, conteneur reste `Up`.
+- `curl http://localhost:8001/api/health/` → `{"status":"ok","checks":{"database":true,"groq_configured":false}}`.
+- Confirmation définitive : le job `docker-build` sur GitHub Actions (voir section suivante pour la méthode de vérification sans connexion).
