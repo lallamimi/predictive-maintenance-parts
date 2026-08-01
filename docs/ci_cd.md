@@ -43,6 +43,16 @@ cd src/frontend && npm ci && npm run lint && npm run build
 docker compose build
 ```
 
-## Limite connue
+## Limite connue (point ouvert)
 
-La vérification `docker compose build` / `docker compose up` en local nécessite que Docker Desktop soit démarré sur la machine — ce n'était pas garanti de façon fiable dans l'environnement de développement utilisé pour ce projet. La vérification de référence est donc le job `docker-build` de la CI (GitHub Actions, runners Linux avec Docker toujours disponible), qui construit réellement les deux images et démarre un conteneur du backend pour vérifier `/api/health/` — voir le badge de statut du dernier run sur l'onglet *Actions* du dépôt.
+La vérification `docker compose build` / `docker compose up` en local nécessite que Docker Desktop soit démarré sur la machine — ce n'était pas garanti de façon fiable dans l'environnement de développement utilisé pour ce projet. La vérification de référence est donc le job `docker-build` de la CI (GitHub Actions, runners Linux).
+
+**État actuel, en toute transparence** : dans ce job, les deux images (`backend`, `frontend`) **se construisent avec succès**. Le test de fumée qui démarre un conteneur depuis l'image backend construite et sonde `/api/health/` échoue en revanche systématiquement (timeout après 90 s), pour une cause non encore identifiée avec certitude — l'accès aux logs détaillés de ce job nécessite une connexion GitHub, indisponible dans l'environnement où ce diagnostic a été mené.
+
+Ce qui a été vérifié pour circonscrire le problème :
+- L'image se construit sans erreur (`pip install` de toutes les dépendances réussit dans le conteneur Linux).
+- La logique applicative elle-même n'est **pas** en cause : `migrate` puis le serveur de développement Django (`runserver`), lancés en dehors de Docker avec exactement les mêmes variables d'environnement que le test de fumée (`DJANGO_DEBUG=0`, sans `DATABASE_URL`, sans `GROQ_API_KEY`), démarrent sans erreur et `/api/health/` répond `200` immédiatement.
+- `collectstatic` a été retiré de la commande de démarrage (risque supprimé, sans effet observé sur le résultat).
+- La suspicion actuelle porte sur `gunicorn` spécifiquement en environnement conteneurisé (non testable en dehors de Docker sur la machine de développement utilisée, Windows, où `gunicorn` ne peut pas s'exécuter du tout — dépendance à `fcntl`, module Unix uniquement).
+
+**Prochaine étape recommandée** : consulter les logs complets du job `docker-build` depuis un compte GitHub connecté (Actions → run le plus récent → job *Packaging Docker*), qui contiennent désormais (`docker ps -a` + `docker logs` systématiques, ajoutés lors de ce diagnostic) la trace exacte de l'échec du conteneur au démarrage.
