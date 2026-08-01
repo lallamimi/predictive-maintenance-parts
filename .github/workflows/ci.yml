@@ -129,17 +129,29 @@ jobs:
           docker run -d --name backend-smoke-test \
             -e DJANGO_SECRET_KEY=cle-de-test-ci \
             -e DJANGO_DEBUG=0 \
+            -e DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
             -e ML_MODELS_DIR=/app/models \
             -v "$PWD/data/processed/models:/app/models:ro" \
             -p 8000:8000 \
             maintenance-predictive-backend:${{ github.sha }}
-          for i in $(seq 1 15); do
+
+          echo "--- Etat du conteneur juste apres lancement ---"
+          sleep 3
+          docker ps -a
+          echo "--- Logs du conteneur (demarrage) ---"
+          docker logs backend-smoke-test
+
+          echo "--- Sondage de /api/health/ ---"
+          for i in $(seq 1 30); do
             if curl -sf http://localhost:8000/api/health/; then
-              echo "Backend operationnel."
+              echo ""
+              echo "Backend operationnel (tentative $i)."
               exit 0
             fi
-            sleep 2
+            sleep 3
           done
-          echo "Le backend n'a pas repondu a temps."
+
+          echo "Le backend n'a pas repondu a temps. Logs complets :"
           docker logs backend-smoke-test
+          docker ps -a
           exit 1
