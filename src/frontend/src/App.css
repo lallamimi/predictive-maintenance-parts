@@ -95,8 +95,14 @@ body {
 }
 
 .login-brand-icon {
-  font-size: 2.25rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: var(--info-bg);
+  color: var(--accent-2);
 }
 
 .login-brand h1 {
@@ -250,7 +256,13 @@ button.btn-icon {
 }
 
 .header-title .brand-icon {
-  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  color: var(--accent-2);
+}
+
+.user-badge svg {
+  flex-shrink: 0;
 }
 
 .header-title h1 {
@@ -333,12 +345,12 @@ button.btn-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
   background: var(--info-bg);
+  color: var(--info-text);
 }
 
-.kpi-card.kpi-alert .kpi-icon { background: var(--danger-bg); }
-.kpi-card.kpi-ok .kpi-icon { background: var(--ok-bg); }
+.kpi-card.kpi-alert .kpi-icon { background: var(--danger-bg); color: var(--danger-text); }
+.kpi-card.kpi-ok .kpi-icon { background: var(--ok-bg); color: var(--ok-text); }
 
 .kpi-body {
   min-width: 0;
@@ -382,6 +394,11 @@ button.btn-icon {
   gap: 8px;
 }
 
+.panel h2 svg {
+  flex-shrink: 0;
+  color: var(--accent-2);
+}
+
 .predict-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -415,8 +432,10 @@ button.btn-icon {
 }
 
 .predict-result .result-icon {
-  font-size: 1.4rem;
-  line-height: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  color: var(--accent-text);
 }
 
 .predict-result p {
@@ -442,18 +461,21 @@ button.btn-icon {
   border-color: rgba(239, 68, 68, 0.35);
 }
 .risk-eleve .risk-bar-fill { background: var(--danger); }
+.risk-eleve .result-icon { color: var(--danger-text); }
 
 .risk-moyen {
   background: var(--warn-bg);
   border-color: rgba(245, 158, 11, 0.35);
 }
 .risk-moyen .risk-bar-fill { background: var(--warn); }
+.risk-moyen .result-icon { color: var(--warn-text); }
 
 .risk-faible {
   background: var(--ok-bg);
   border-color: rgba(34, 197, 94, 0.35);
 }
 .risk-faible .risk-bar-fill { background: var(--ok); }
+.risk-faible .result-icon { color: var(--ok-text); }
 
 .reco-panel {
   border-color: var(--accent-ring);
@@ -471,10 +493,10 @@ button.btn-icon {
   height: 36px;
   border-radius: var(--radius-sm);
   background: var(--info-bg);
+  color: var(--accent-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
 }
 
 .reco-text {

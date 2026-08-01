@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AlertOctagon, AlertTriangle, CheckCircle2, Search } from "lucide-react";
 import { mlApi } from "../api/client";
 
 const DEFAULTS = {
@@ -11,13 +12,14 @@ const DEFAULTS = {
 };
 
 const RISK_LABELS = { eleve: "Élevé", moyen: "Moyen", faible: "Faible" };
-const RISK_ICONS = { eleve: "🔴", moyen: "🟠", faible: "🟢" };
+const RISK_ICONS = { eleve: AlertOctagon, moyen: AlertTriangle, faible: CheckCircle2 };
 
 export default function PredictFailureForm() {
   const [form, setForm] = useState(DEFAULTS);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const RiskIcon = result ? RISK_ICONS[result.niveau_risque] : null;
 
   function updateField(name, value) {
     setForm((prev) => ({ ...prev, [name]: name === "type_produit" ? value : Number(value) }));
@@ -40,7 +42,7 @@ export default function PredictFailureForm() {
 
   return (
     <section aria-labelledby="predict-failure-title" className="panel">
-      <h2 id="predict-failure-title"><span aria-hidden="true">🔍</span> Prédiction de panne</h2>
+      <h2 id="predict-failure-title"><Search size={19} aria-hidden="true" /> Prédiction de panne</h2>
       <form onSubmit={handleSubmit} className="predict-form">
         <label htmlFor="temp_air">Température air (K)</label>
         <input
@@ -85,7 +87,7 @@ export default function PredictFailureForm() {
         </select>
 
         <button type="submit" disabled={loading}>
-          {loading ? "Analyse..." : "🔍 Analyser le risque"}
+          {loading ? "Analyse..." : (<><Search size={16} aria-hidden="true" /> Analyser le risque</>)}
         </button>
       </form>
 
@@ -93,7 +95,9 @@ export default function PredictFailureForm() {
 
       {result && (
         <div className={`predict-result risk-${result.niveau_risque}`} role="status">
-          <span className="result-icon" aria-hidden="true">{RISK_ICONS[result.niveau_risque]}</span>
+          <span className="result-icon" aria-hidden="true">
+            <RiskIcon size={22} />
+          </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p>
               <strong>{result.panne_predite ? "Panne probable" : "Pas de panne prévue"}</strong> — probabilité{" "}

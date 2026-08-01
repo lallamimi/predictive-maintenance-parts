@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BarChart3, LogOut, Moon, Radio, Sun, TrendingDown, User, Wrench, AlertTriangle, Euro, Hammer } from "lucide-react";
 import { dataApi } from "../api/client";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -22,7 +23,9 @@ export default function DashboardPage() {
     <div className="dashboard">
       <header>
         <div className="header-title">
-          <span className="brand-icon" aria-hidden="true">🔧</span>
+          <span className="brand-icon" aria-hidden="true">
+            <Wrench size={22} strokeWidth={2} />
+          </span>
           <h1>Maintenance Prédictive</h1>
         </div>
         <div className="header-actions">
@@ -33,13 +36,13 @@ export default function DashboardPage() {
             aria-label={theme === "dark" ? "Activer le thème clair" : "Activer le thème sombre"}
             title={theme === "dark" ? "Thème clair" : "Thème sombre"}
           >
-            <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>
+            {theme === "dark" ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
           </button>
           <span className="user-badge">
-            👤 <strong>{user?.username}</strong> · {user?.role}
+            <User size={14} aria-hidden="true" /> <strong>{user?.username}</strong> · {user?.role}
           </span>
           <button type="button" className="btn-ghost" onClick={logout}>
-            🚪 Déconnexion
+            <LogOut size={16} aria-hidden="true" /> Déconnexion
           </button>
         </div>
       </header>
@@ -49,22 +52,22 @@ export default function DashboardPage() {
 
         {kpi && (
           <section aria-label="Indicateurs clés de performance" className="kpi-row">
-            <KpiCard icon="📡" label="Lectures capteur" value={kpi.nb_lectures_total} />
+            <KpiCard icon={<Radio size={20} aria-hidden="true" />} label="Lectures capteur" value={kpi.nb_lectures_total} />
             <KpiCard
-              icon="⚠️"
+              icon={<AlertTriangle size={20} aria-hidden="true" />}
               label="Pannes détectées"
               value={kpi.nb_pannes}
               tone={kpi.taux_panne_pct > 5 ? "alert" : "ok"}
             />
-            <KpiCard icon="📉" label="Taux de panne" value={`${kpi.taux_panne_pct}%`} />
-            <KpiCard icon="🛠️" label="Interventions" value={kpi.nb_interventions} />
-            <KpiCard icon="💶" label="Coût cumulé" value={`${Math.round(kpi.cout_total_interventions)} €`} />
+            <KpiCard icon={<TrendingDown size={20} aria-hidden="true" />} label="Taux de panne" value={`${kpi.taux_panne_pct}%`} />
+            <KpiCard icon={<Hammer size={20} aria-hidden="true" />} label="Interventions" value={kpi.nb_interventions} />
+            <KpiCard icon={<Euro size={20} aria-hidden="true" />} label="Coût cumulé" value={`${Math.round(kpi.cout_total_interventions)} €`} />
           </section>
         )}
 
         {kpi && (
           <section aria-labelledby="chart-title" className="panel">
-            <h2 id="chart-title"><span aria-hidden="true">📊</span> Coût cumulé par pièce</h2>
+            <h2 id="chart-title"><BarChart3 size={19} aria-hidden="true" /> Coût cumulé par pièce</h2>
             <CoutParPieceChart data={kpi.top_pieces_par_cout} />
           </section>
         )}

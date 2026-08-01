@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LogIn, Moon, Sun, Wrench } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -32,12 +33,14 @@ export default function LoginPage() {
         aria-label={theme === "dark" ? "Activer le thème clair" : "Activer le thème sombre"}
         title={theme === "dark" ? "Thème clair" : "Thème sombre"}
       >
-        <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>
+        {theme === "dark" ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
       </button>
 
       <form onSubmit={handleSubmit} aria-labelledby="login-title">
         <div className="login-brand">
-          <span className="login-brand-icon" aria-hidden="true">🔧</span>
+          <span className="login-brand-icon" aria-hidden="true">
+            <Wrench size={30} strokeWidth={1.75} />
+          </span>
           <h1 id="login-title">Maintenance Prédictive</h1>
           <p>Aide à la décision — maintenance &amp; pièces de rechange</p>
         </div>
@@ -71,7 +74,11 @@ export default function LoginPage() {
         )}
 
         <button type="submit" disabled={loading}>
-          {loading ? "Connexion..." : "🔐 Se connecter"}
+          {loading ? "Connexion..." : (
+            <>
+              <LogIn size={16} aria-hidden="true" /> Se connecter
+            </>
+          )}
         </button>
       </form>
     </main>
