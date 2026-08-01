@@ -104,3 +104,42 @@ jobs:
 
       - name: Build de production
         run: npm run build
+
+  docker-build:
+    name: Packaging Docker (livraison continue - C19)
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recuperer les modeles entraines
+        uses: actions/download-artifact@v4
+        with:
+          name: modeles-entraines
+          path: data/processed/models/
+
+      - name: Build de l'image backend
+        run: docker build -t maintenance-predictive-backend:${{ github.sha }} ./src/backend
+
+      - name: Build de l'image frontend
+        run: docker build -t maintenance-predictive-frontend:${{ github.sha }} ./src/frontend
+
+      - name: Verifier que le backend demarre reellement depuis l'image construite
+        run: |
+          docker run -d --name backend-smoke-test \
+            -e DJANGO_SECRET_KEY=cle-de-test-ci \
+            -e DJANGO_DEBUG=0 \
+            -e ML_MODELS_DIR=/app/models \
+            -v "$PWD/data/processed/models:/app/models:ro" \
+            -p 8000:8000 \
+            maintenance-predictive-backend:${{ github.sha }}
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8000/api/health/; then
+              echo "Backend operationnel."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Le backend n'a pas repondu a temps."
+          docker logs backend-smoke-test
+          exit 1

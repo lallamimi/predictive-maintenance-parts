@@ -7,13 +7,20 @@ ici en lecture seule - le backend ne re-entraine jamais un modele a la volee.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from threading import Lock
 
 import joblib
 
-BASE_DIR = Path(__file__).resolve().parents[3]  # .../predictive-maintenance-parts
-MODELS_DIR = BASE_DIR / "data" / "processed" / "models"
+# En local (hors Docker), les modeles vivent a la racine du projet, 3 niveaux
+# au-dessus de src/backend/. Dans le conteneur, seul src/backend/ est copie -
+# le chemin est alors fourni explicitement via ML_MODELS_DIR (voir
+# docker-compose.yml) plutot que recalcule par remontee de dossiers, ce qui
+# serait fragile des que la structure de fichiers change entre les deux
+# environnements.
+_BASE_DIR = Path(__file__).resolve().parents[3]  # .../predictive-maintenance-parts (local uniquement)
+MODELS_DIR = Path(os.getenv("ML_MODELS_DIR") or (_BASE_DIR / "data" / "processed" / "models"))
 
 _lock = Lock()
 _cache: dict[str, object] = {}
