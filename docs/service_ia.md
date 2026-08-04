@@ -4,6 +4,10 @@
 
 Transformer les indicateurs de stock/panne en recommandation lisible pour le gestionnaire (mission 7 du cahier des charges). Voir le choix argumenté dans [`benchmark_ia.md`](benchmark_ia.md).
 
+## Environnement d'exécution
+
+Backend Django/Python 3.11 (même environnement que le reste de l'API — pas de service séparé). Appel HTTP sortant vers `api.groq.com` via la librairie `requests`, déclenché par `GET /api/recommendations/`. Fichier de configuration exemple : [`src/backend/.env.example`](../src/backend/.env.example).
+
 ## Procédure d'installation
 
 1. Créer un compte sur [console.groq.com](https://console.groq.com/) (gratuit).
@@ -24,6 +28,19 @@ Transformer les indicateurs de stock/panne en recommandation lisible pour le ges
 
 ```bash
 curl -H "Authorization: Bearer <token JWT>" http://localhost:8000/api/recommendations/
+```
+
+**Résultat réel** (test exécuté le 04/08/2026, `GROQ_API_KEY` vide dans cet environnement — démontre le repli documenté ci-dessous) :
+```json
+{
+  "source": "repli_regles",
+  "contexte": {
+    "taux_panne_pct": 3.39,
+    "cout_total_interventions": 123105.04,
+    "pieces_sous_seuil": []
+  },
+  "recommandation": "Aucune piece sous le seuil de reapprovisionnement. Taux de panne actuel : 3.39%. Situation stable."
+}
 ```
 
 ## Données envoyées / reçues

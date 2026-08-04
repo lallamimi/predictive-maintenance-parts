@@ -29,9 +29,8 @@ src/collect/   # Scripts de collecte (source publique + génération synthétiqu
 src/sql/       # Schéma et requêtes d'analyse — C2
 src/clean/     # Nettoyage et validation du dataset — C3
 src/ml/        # Entraînement des modèles et explicabilité — C9-C13
-src/backend/   # API Django (données + modèles IA)
+src/backend/   # API Django (données + modèles IA) — tests dans src/backend/tests/
 src/frontend/  # Tableaux de bord React
-tests/         # Suite de tests (pytest)
 ```
 
 ## Démarrage rapide
@@ -51,6 +50,9 @@ docker compose exec backend python manage.py load_dataset --reset
 curl -X POST http://localhost:8000/api/auth/register/ \
   -H "Content-Type: application/json" \
   -d '{"username":"demo","email":"demo@test.local","password":"DemoTest1234!","role":"admin"}'
+
+# Exemple d'appel a l'API de donnees (avec le token "access" retourne ci-dessus)
+curl http://localhost:8000/api/data/pieces/ -H "Authorization: Bearer <access_token>"
 ```
 
 - Frontend : http://localhost:8080 (se connecter avec le compte créé ci-dessus)
@@ -85,8 +87,34 @@ npm run dev   # http://localhost:5173
 
 Dans les deux cas, aucun compte n'existe par défaut : il faut en créer un via `/api/auth/register/` (ou `python manage.py createsuperuser` pour l'admin Django `/admin/`).
 
+## Tests
+
+Suite de tests pytest (backend, 31 tests) :
+
+```bash
+cd src/backend
+python -m venv .venv && .venv/Scripts/activate   # ou source .venv/bin/activate sous Linux/Mac
+pip install -r requirements.txt
+python manage.py migrate
+python -m pytest -v
+```
+
+Couvre : santé applicative, authentification, API données, API modèle IA, permissions par rôle, recommandations, commande d'import (non-régression). Exécutés automatiquement à chaque push (`.github/workflows/ci.yml`, job `backend-tests`).
+
+## Limites et perspectives
+
+Phase A (preuve minimale sur l'ensemble des compétences visées) terminée. Limites actuelles, assumées :
+
+- Pas d'audit d'accessibilité WCAG formel
+- Pas d'audit de sécurité OWASP complet (rate limiting absent)
+- Pas de déploiement en pré-production réelle (local + CI uniquement)
+- Suivi de projet individuel : pas de rituels d'équipe au sens strict
+
+Voir [`docs/project_management.md`](docs/project_management.md) pour la suite envisagée (Phase B).
+
 ## Suivi du projet
 
 - Référentiel de compétences visé : [`../referentiel_competences.md`](../referentiel_competences.md)
 - Suivi agile : voir [`docs/project_management.md`](docs/project_management.md)
 - Registre RGPD : [`docs/rgpd.md`](docs/rgpd.md)
+- Modèle de données : [`docs/mcd_mpd.md`](docs/mcd_mpd.md)
