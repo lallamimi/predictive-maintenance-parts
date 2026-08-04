@@ -1,0 +1,6 @@
+# Lint leger (C13) : uniquement les erreurs pyflakes (imports/variables
+# inutilises, noms non definis) - pas de regles stylistiques strictes, pour
+# eviter le bruit sur un code Django/DRF standard (ex: RUF012 sur
+# permission_classes = [...], un pattern DRF normal, pas un vrai risque).
+[lint]
+select = ["F", "E9"]

@@ -63,6 +63,9 @@ jobs:
       - name: Installer les dependances backend
         run: pip install -r requirements.txt
 
+      - name: Lint (verifications legeres - imports/noms non definis)
+        run: ruff check . --select=F,E9
+
       - name: Recuperer les modeles entraines
         uses: actions/download-artifact@v4
         with:
@@ -78,8 +81,15 @@ jobs:
       - name: Migrations
         run: python manage.py migrate --noinput
 
-      - name: Lancer les tests
-        run: python -m pytest -v
+      - name: Lancer les tests avec rapport de couverture
+        run: python -m pytest -v --cov=. --cov-report=term-missing --cov-report=html
+
+      - name: Archiver le rapport de couverture
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-couverture-backend
+          path: src/backend/htmlcov/
+          retention-days: 7
 
   frontend-build:
     name: Lint + build frontend
