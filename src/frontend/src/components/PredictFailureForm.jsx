@@ -48,6 +48,10 @@ export default function PredictFailureForm() {
         <input
           id="temp_air"
           type="number"
+          min="250"
+          max="350"
+          step="0.1"
+          required
           value={form.temperature_air_k}
           onChange={(e) => updateField("temperature_air_k", e.target.value)}
         />
@@ -56,6 +60,10 @@ export default function PredictFailureForm() {
         <input
           id="temp_process"
           type="number"
+          min="250"
+          max="350"
+          step="0.1"
+          required
           value={form.temperature_process_k}
           onChange={(e) => updateField("temperature_process_k", e.target.value)}
         />
@@ -64,17 +72,34 @@ export default function PredictFailureForm() {
         <input
           id="vitesse"
           type="number"
+          min="0"
+          max="5000"
+          step="1"
+          required
           value={form.vitesse_rotation_rpm}
           onChange={(e) => updateField("vitesse_rotation_rpm", e.target.value)}
         />
 
         <label htmlFor="couple">Couple (Nm)</label>
-        <input id="couple" type="number" value={form.couple_nm} onChange={(e) => updateField("couple_nm", e.target.value)} />
+        <input
+          id="couple"
+          type="number"
+          min="0"
+          max="150"
+          step="0.1"
+          required
+          value={form.couple_nm}
+          onChange={(e) => updateField("couple_nm", e.target.value)}
+        />
 
         <label htmlFor="usure">Usure outil (min)</label>
         <input
           id="usure"
           type="number"
+          min="0"
+          max="300"
+          step="1"
+          required
           value={form.usure_outil_min}
           onChange={(e) => updateField("usure_outil_min", e.target.value)}
         />
