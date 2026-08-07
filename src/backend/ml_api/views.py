@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from inventory.models import PieceRechange
 from maintenance.models import InterventionPiece
 
+from .business_rules import niveau_risque, panne_predite
 from .model_registry import ModeleIndisponible, get_demand_model, get_failure_model
 from .models import ModelPredictionLog
 from .serializers import PredictDemandInputSerializer, PredictFailureInputSerializer
@@ -66,14 +67,8 @@ class PredictFailureView(APIView):
 
         X = pd.DataFrame([entree])
         proba = float(model.predict_proba(X)[0][1])
-        prediction = bool(proba >= 0.5)
-
-        if proba >= 0.7:
-            niveau = "eleve"
-        elif proba >= 0.3:
-            niveau = "moyen"
-        else:
-            niveau = "faible"
+        prediction = panne_predite(proba)
+        niveau = niveau_risque(proba)
 
         latence = (time.perf_counter() - debut) * 1000
         _log_prediction(

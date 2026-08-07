@@ -13,3 +13,4 @@ joblib==1.5.3
 shap==0.51.0
 ucimlrepo==0.0.7
 tabulate==0.10.0
+pytest==9.1.1

@@ -89,17 +89,30 @@ Dans les deux cas, aucun compte n'existe par défaut : il faut en créer un via 
 
 ## Tests
 
-Suite de tests pytest (backend, 31 tests) :
+**51 tests au total**, répartis sur 3 suites, toutes exécutées automatiquement à chaque push (`.github/workflows/ci.yml`) :
 
+**Backend (41 tests, pytest)** — santé applicative, authentification, API données, API modèle IA, règles de décision métier (seuils de risque), permissions par rôle, recommandations, commande d'import (non-régression) :
 ```bash
 cd src/backend
 python -m venv .venv && .venv/Scripts/activate   # ou source .venv/bin/activate sous Linux/Mac
 pip install -r requirements.txt
 python manage.py migrate
-python -m pytest -v
+python -m pytest -v --cov=. --cov-report=term-missing   # rapport de couverture
+ruff check . --select=F,E9                                # lint (job backend-tests de la CI)
 ```
 
-Couvre : santé applicative, authentification, API données, API modèle IA, permissions par rôle, recommandations, commande d'import (non-régression). Exécutés automatiquement à chaque push (`.github/workflows/ci.yml`, job `backend-tests`).
+**Données (6 tests, pytest, racine du dépôt)** — validation du dataset : colonnes requises, valeurs manquantes, doublons, plages physiques :
+```bash
+pip install -r requirements.txt   # a la racine
+python -m pytest tests/ -v
+```
+
+**Frontend (4 tests, Vitest + Testing Library)** — rendu, appel API, gestion d'erreur, validation de formulaire :
+```bash
+cd src/frontend
+npm ci
+npm test
+```
 
 ## Limites et perspectives
 

@@ -29,6 +29,9 @@ jobs:
           python src/clean/clean_maintenance.py
           python src/clean/validate_dataset.py
 
+      - name: Tests unitaires couche Donnees (colonnes, types, valeurs manquantes, formats)
+        run: python -m pytest tests/ -v
+
       - name: Requetes SQL d'analyse
         run: python src/sql/run_queries.py
 
@@ -111,6 +114,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Tests (Vitest + Testing Library)
+        run: npm test
 
       - name: Build de production
         run: npm run build

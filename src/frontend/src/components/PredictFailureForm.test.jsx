@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import PredictFailureForm from "./PredictFailureForm";
 import { mlApi } from "../api/client";
 
@@ -9,6 +9,10 @@ vi.mock("../api/client", () => ({
 }));
 
 describe("PredictFailureForm", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("affiche le formulaire avec les valeurs par defaut", () => {
     render(<PredictFailureForm />);
     expect(screen.getByLabelText("Température air (K)")).toHaveValue(300);
@@ -39,5 +43,20 @@ describe("PredictFailureForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /analyser le risque/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Erreur 503");
+  });
+
+  it("refuse une temperature hors plage physique avant tout appel API (C18 - couche Interface)", async () => {
+    render(<PredictFailureForm />);
+    const champTempAir = screen.getByLabelText("Température air (K)");
+
+    // fireEvent.change plutot que userEvent.type : evite les etats
+    // intermediaires invalides ("-" seul = NaN) d'un <input type="number">
+    // controle par React lors d'une saisie caractere par caractere simulee.
+    fireEvent.change(champTempAir, { target: { value: "-10" } });
+    expect(champTempAir).toBeInvalid();
+
+    await userEvent.click(screen.getByRole("button", { name: /analyser le risque/i }));
+
+    expect(mlApi.predictFailure).not.toHaveBeenCalled();
   });
 });
