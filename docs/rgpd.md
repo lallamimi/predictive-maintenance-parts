@@ -16,6 +16,9 @@ Ce projet est **fictif** (voir README) : aucune donnée réelle d'utilisateur, d
 | Rôle métier | `accounts.User.role` | Contrôle d'accès (technicien / gestionnaire de stock / admin) | Intérêt légitime (sécurité applicative) |
 | Prénom / nom (hérités d'`AbstractUser`) | `accounts.User.first_name`, `last_name` | Personnalisation de l'interface | Exécution du contrat |
 | Historique de connexion | `accounts.User.last_login`, `date_joined` | Sécurité, traçabilité | Intérêt légitime |
+| Nom d'utilisateur (dans les journaux techniques) | `ml_api.ModelPredictionLog.utilisateur` (chaque appel de prédiction) + `config.middleware.RequestLoggingMiddleware` (chaque requête HTTP, `logs/app.log`) | Audit technique : savoir qui a déclenché quel appel, à quelle heure, avec quel résultat — indispensable pour diagnostiquer un incident (voir `docs/incident_report.md`) | Intérêt légitime (sécurité, diagnostic) |
+
+Minimisation appliquée : ces journaux ne stockent que le `username`, jamais l'e-mail, le mot de passe, ni le contenu des mesures capteur envoyées — seulement l'identité de l'appelant et le résultat technique (latence, code retour, résumé de prédiction).
 
 **Aucune donnée personnelle sensible** (santé, opinions, données biométriques) n'est collectée. Les données de maintenance/pièces de rechange (interventions, capteurs) ne concernent pas des personnes physiques identifiables : elles sont exclues du périmètre RGPD.
 

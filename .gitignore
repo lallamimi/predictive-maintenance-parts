@@ -6,6 +6,8 @@ __pycache__/
 venv/
 .pytest_cache/
 *.egg-info/
+.coverage
+htmlcov/
 
 # Données (générées localement, non versionnées)
 data/raw/*

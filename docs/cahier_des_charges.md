@@ -49,14 +49,35 @@ Un service de maintenance automobile (fictif) souhaite passer d'une gestion réa
 - Critère 1 : `/api/health/` répond en moins de 500 ms.
 - Critère 2 : `/api/ml/monitoring/` indique le taux d'échec et la latence moyenne par modèle.
 
-## 4. Exigences non fonctionnelles
+## 4. Parcours utilisateur
+
+Pas de wireframes graphiques (l'application est déjà codée, pas en phase de maquettage) : parcours utilisateur réel, ancré dans les écrans et rôles effectivement implémentés.
+
+**Amine (technicien)**
+1. `LoginPage` → authentification (JWT).
+2. Redirection vers `DashboardPage` → lecture des KPI (taux de panne, interventions, coût cumulé).
+3. Panneau *Prédiction de panne* (`PredictFailureForm`) → saisie des mesures capteur d'une machine → clic *Analyser le risque* → résultat coloré (probabilité + niveau de risque) affiché immédiatement.
+
+**Sophie (gestionnaire de stock)**
+1. `LoginPage` → `DashboardPage`.
+2. Panneau *Prévision de demande de pièces* (`PredictDemandPanel`) → sélection d'une pièce → clic *Prévoir la demande* → demande prévue affichée.
+3. Formulaire *Ajuster le stock* — visible uniquement pour son rôle (`gestionnaire_stock`/`admin`) — nouvelle valeur → confirmation.
+4. Panneau *Recommandation* (`RecommendationPanel`) → lecture de la synthèse en langage naturel.
+
+**Karim (administrateur)**
+1. `LoginPage` → `DashboardPage` complet (accès à tous les panneaux, y compris l'ajustement de stock).
+2. Supervision via `/api/health/` et `/api/ml/monitoring/` (statistiques d'usage des modèles).
+
+Chaque étape correspond à un composant React réel et à un endpoint API réel — aucune étape de ce parcours n'est une intention non implémentée.
+
+## 5. Exigences non fonctionnelles
 
 - **Accessibilité** : labels explicites sur tous les champs de formulaire, régions nommées (`aria-labelledby`), messages d'erreur exposés via `role="alert"` (voir `src/frontend/src/pages` et `components`).
 - **Sécurité** : voir `docs/rgpd.md` et top 10 OWASP pris en compte dans la conception de l'API (authentification obligatoire, validation stricte des entrées, pas de secret en dur).
 - **Performance** : pagination systématique des listes (`PAGE_SIZE=20`).
 - **Éco-conception** : choix d'un service IA gratuit et à faible latence (voir `docs/benchmark_ia.md`) plutôt qu'un modèle surdimensionné.
 
-## 5. Hors périmètre (Phase A)
+## 6. Hors périmètre (Phase A)
 
 - Gestion multi-langue.
 - Application mobile native.

@@ -1,0 +1,28 @@
+{
+  "genere_le": "2026-08-08T03:11:00.507825+00:00",
+  "dataset_lignes": 10000,
+  "modele_retenu": "xgboost",
+  "resultats": {
+    "regression_logistique": {
+      "accuracy": 0.8252,
+      "f1_score": 0.2373,
+      "roc_auc": 0.8836,
+      "precision": 0.1393,
+      "recall": 0.8
+    },
+    "random_forest": {
+      "accuracy": 0.97,
+      "f1_score": 0.6193,
+      "roc_auc": 0.967,
+      "precision": 0.5446,
+      "recall": 0.7176
+    },
+    "xgboost": {
+      "accuracy": 0.9692,
+      "f1_score": 0.6516,
+      "roc_auc": 0.973,
+      "precision": 0.5294,
+      "recall": 0.8471
+    }
+  }
+}

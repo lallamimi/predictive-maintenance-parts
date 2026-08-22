@@ -23,13 +23,32 @@ Usage :
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import pandas as pd
 
 DIRECT_CSV_URL = "https://archive.ics.uci.edu/ml/machine-learning-databases/00601/ai4i2020.csv"
-DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "data" / "raw" / "ai4i2020_raw.csv"
+BASE_DIR = Path(__file__).resolve().parents[2]
+DEFAULT_OUTPUT = BASE_DIR / "data" / "raw" / "ai4i2020_raw.csv"
+LOG_FILE = BASE_DIR / "logs" / "collecte.log"
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logging() -> None:
+    """Console + fichier logs/collecte.log (rotation 5 Mo x 3), meme convention que le logging Django (C20)."""
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            RotatingFileHandler(LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3),
+        ],
+    )
 
 
 def fetch_via_ucimlrepo() -> pd.DataFrame:
@@ -53,32 +72,32 @@ def download(output_path: Path) -> pd.DataFrame:
     df: pd.DataFrame | None = None
 
     try:
-        print("[1/2] Tentative via le package ucimlrepo...")
+        logger.info("[1/2] Tentative via le package ucimlrepo...")
         df = fetch_via_ucimlrepo()
-        print(f"      OK : {len(df)} lignes recuperees via ucimlrepo.")
+        logger.info("OK : %d lignes recuperees via ucimlrepo.", len(df))
     except ImportError:
-        print("      ucimlrepo n'est pas installe (pip install ucimlrepo). Repli sur le CSV direct.")
+        logger.warning("ucimlrepo n'est pas installe (pip install ucimlrepo). Repli sur le CSV direct.")
     except Exception as exc:  # noqa: BLE001 - on veut logguer puis basculer sur le repli
-        print(f"      Echec ucimlrepo ({exc!r}). Repli sur le CSV direct.")
+        logger.warning("Echec ucimlrepo (%r). Repli sur le CSV direct.", exc)
 
     if df is None:
         try:
-            print("[2/2] Tentative de telechargement direct du CSV UCI...")
+            logger.info("[2/2] Tentative de telechargement direct du CSV UCI...")
             df = fetch_via_direct_csv()
-            print(f"      OK : {len(df)} lignes recuperees via telechargement direct.")
+            logger.info("OK : %d lignes recuperees via telechargement direct.", len(df))
         except Exception as exc:  # noqa: BLE001
-            print(f"      Echec du telechargement direct ({exc!r}).")
-            print("ERREUR : aucune des deux methodes de collecte n'a fonctionne.")
-            print("Solution manuelle : telecharger le CSV depuis")
-            print("  https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset")
-            print(f"  et le placer dans : {output_path}")
+            logger.error("Echec du telechargement direct (%r).", exc)
+            logger.error("ERREUR : aucune des deux methodes de collecte n'a fonctionne.")
+            logger.error("Solution manuelle : telecharger le CSV depuis")
+            logger.error("  https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset")
+            logger.error("  et le placer dans : %s", output_path)
             sys.exit(1)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output_path, index=False)
-    print(f"\nDonnees sauvegardees : {output_path}")
-    print(f"Lignes : {len(df)} | Colonnes : {len(df.columns)}")
-    print(f"Colonnes : {list(df.columns)}")
+    logger.info("Donnees sauvegardees : %s", output_path)
+    logger.info("Lignes : %d | Colonnes : %d", len(df), len(df.columns))
+    logger.info("Colonnes : %s", list(df.columns))
     return df
 
 
@@ -91,6 +110,7 @@ def main() -> None:
         help="Chemin du fichier CSV de sortie (defaut : data/raw/ai4i2020_raw.csv)",
     )
     args = parser.parse_args()
+    setup_logging()
     download(args.output)
 
 

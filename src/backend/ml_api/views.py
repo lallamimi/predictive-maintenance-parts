@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from inventory.models import PieceRechange
 from maintenance.models import InterventionPiece
 
+from .business_rules import niveau_risque, panne_predite
 from .model_registry import ModeleIndisponible, get_demand_model, get_failure_model
 from .models import ModelPredictionLog
 from .serializers import PredictDemandInputSerializer, PredictFailureInputSerializer
@@ -48,7 +49,12 @@ class PredictFailureView(APIView):
     def post(self, request):
         debut = time.perf_counter()
         serializer = PredictFailureInputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            latence = (time.perf_counter() - debut) * 1000
+            _log_prediction(
+                ModelPredictionLog.Endpoint.FAILURE, request.user, latence, False, message_erreur=str(serializer.errors)
+            )
+            return Response(serializer.errors, status=400)
         entree = serializer.validated_data
 
         try:
@@ -57,18 +63,12 @@ class PredictFailureView(APIView):
             latence = (time.perf_counter() - debut) * 1000
             _log_prediction(ModelPredictionLog.Endpoint.FAILURE, request.user, latence, False, message_erreur=str(exc))
             logger.error("predict-failure indisponible : %s", exc)
-            return Response({"detail": str(exc)}, status=503)
+            return Response({"detail": "Modele de prediction de panne indisponible pour le moment."}, status=503)
 
         X = pd.DataFrame([entree])
         proba = float(model.predict_proba(X)[0][1])
-        prediction = bool(proba >= 0.5)
-
-        if proba >= 0.7:
-            niveau = "eleve"
-        elif proba >= 0.3:
-            niveau = "moyen"
-        else:
-            niveau = "faible"
+        prediction = panne_predite(proba)
+        niveau = niveau_risque(proba)
 
         latence = (time.perf_counter() - debut) * 1000
         _log_prediction(
@@ -103,7 +103,12 @@ class PredictDemandView(APIView):
     def post(self, request):
         debut = time.perf_counter()
         serializer = PredictDemandInputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            latence = (time.perf_counter() - debut) * 1000
+            _log_prediction(
+                ModelPredictionLog.Endpoint.DEMAND, request.user, latence, False, message_erreur=str(serializer.errors)
+            )
+            return Response(serializer.errors, status=400)
         piece_id = serializer.validated_data["piece_id"]
 
         try:
@@ -121,7 +126,7 @@ class PredictDemandView(APIView):
             latence = (time.perf_counter() - debut) * 1000
             _log_prediction(ModelPredictionLog.Endpoint.DEMAND, request.user, latence, False, message_erreur=str(exc))
             logger.error("predict-demand indisponible : %s", exc)
-            return Response({"detail": str(exc)}, status=503)
+            return Response({"detail": "Modele de prevision de demande indisponible pour le moment."}, status=503)
 
         historique = InterventionPiece.objects.filter(piece_id=piece_id).values("date_intervention", "quantite")
         df = pd.DataFrame(list(historique))

@@ -10,12 +10,16 @@ Usage :
 
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import joblib
 import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -31,6 +35,7 @@ from xgboost import XGBClassifier
 BASE_DIR = Path(__file__).resolve().parents[2]
 DATASET_PATH = BASE_DIR / "data" / "processed" / "dataset_final.csv"
 MODELS_DIR = BASE_DIR / "data" / "processed" / "models"
+METRICS_PATH = BASE_DIR / "docs" / "ml_metrics.json"
 
 FEATURES_NUM = [
     "temperature_air_k",
@@ -71,41 +76,71 @@ def main() -> None:
     scale_pos_weight = neg / max(pos, 1)
     print(f"scale_pos_weight={scale_pos_weight:.2f} (neg={neg}, pos={pos})")
 
-    model = Pipeline(
-        steps=[
-            ("prep", preprocess),
-            (
-                "clf",
-                XGBClassifier(
-                    n_estimators=300,
-                    learning_rate=0.05,
-                    max_depth=4,
-                    subsample=0.9,
-                    colsample_bytree=0.9,
-                    scale_pos_weight=scale_pos_weight,
-                    random_state=42,
-                    eval_metric="logloss",
-                    n_jobs=-1,
-                ),
-            ),
-        ]
+    # Benchmark de plusieurs algorithmes sur le meme split/preprocessing, pour
+    # justifier le choix de XGBoost par des chiffres plutot que par defaut
+    # (voir docs/choix_modele_ml.md). XGBoost reste le modele sauvegarde/deploye.
+    candidats = {
+        "regression_logistique": LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42),
+        "random_forest": RandomForestClassifier(
+            n_estimators=300, max_depth=8, class_weight="balanced", random_state=42, n_jobs=-1
+        ),
+        "xgboost": XGBClassifier(
+            n_estimators=300,
+            learning_rate=0.05,
+            max_depth=4,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            scale_pos_weight=scale_pos_weight,
+            random_state=42,
+            eval_metric="logloss",
+            n_jobs=-1,
+        ),
+    }
+
+    resultats = {}
+    model = None
+    print("\n--- Comparaison d'algorithmes (meme split, meme preprocessing) ---")
+    for nom, clf in candidats.items():
+        pipeline = Pipeline(steps=[("prep", preprocess), ("clf", clf)])
+        pipeline.fit(X_train, y_train)
+
+        y_pred = pipeline.predict(X_test)
+        y_proba = pipeline.predict_proba(X_test)[:, 1]
+
+        metriques = {
+            "accuracy": round(accuracy_score(y_test, y_pred), 4),
+            "f1_score": round(f1_score(y_test, y_pred), 4),
+            "roc_auc": round(roc_auc_score(y_test, y_proba), 4),
+            "precision": round(precision_score(y_test, y_pred), 4),
+            "recall": round(recall_score(y_test, y_pred), 4),
+        }
+        resultats[nom] = metriques
+        print(
+            f"{nom:25s} accuracy={metriques['accuracy']:.4f} f1={metriques['f1_score']:.4f} "
+            f"roc_auc={metriques['roc_auc']:.4f} precision={metriques['precision']:.4f} recall={metriques['recall']:.4f}"
+        )
+
+        if nom == "xgboost":
+            model = pipeline  # modele retenu et deploye, voir docs/choix_modele_ml.md pour la justification
+
+    METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    METRICS_PATH.write_text(
+        json.dumps(
+            {
+                "genere_le": datetime.now(timezone.utc).isoformat(),
+                "dataset_lignes": len(df),
+                "modele_retenu": "xgboost",
+                "resultats": resultats,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
     )
-
-    model.fit(X_train, y_train)
-
-    y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test)[:, 1]
-
-    print("\n--- Modele de prediction de panne (XGBoost) ---")
-    print(f"Accuracy  : {accuracy_score(y_test, y_pred):.4f}")
-    print(f"F1 Score  : {f1_score(y_test, y_pred):.4f}")
-    print(f"ROC-AUC   : {roc_auc_score(y_test, y_proba):.4f}")
-    print(f"Precision : {precision_score(y_test, y_pred):.4f}")
-    print(f"Recall    : {recall_score(y_test, y_pred):.4f}")
+    print(f"\nMetriques comparatives sauvegardees : {METRICS_PATH}")
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, MODELS_DIR / "failure_model.pkl")
-    print(f"\nModele sauvegarde : {MODELS_DIR / 'failure_model.pkl'}")
+    print(f"Modele sauvegarde : {MODELS_DIR / 'failure_model.pkl'}")
 
 
 if __name__ == "__main__":

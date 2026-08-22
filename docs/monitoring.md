@@ -25,7 +25,17 @@
 
 ## Monitoring applicatif (C20)
 
-**Journalisation Django** : configuration `LOGGING` dans `config/settings.py` — sortie console + fichier `logs/app.log` (rotation 5 Mo × 3, non versionné). Loggers dédiés `maintenance` et `inventory` en plus du logger `django` standard.
+**Journalisation de chaque requête HTTP** : `config.middleware.RequestLoggingMiddleware` (voir `src/backend/config/middleware.py`), enregistré en dernier dans `MIDDLEWARE`. Contrairement à `ml_api.ModelPredictionLog` (C11, limité aux deux endpoints de prédiction), ce middleware couvre **toute l'application** — authentification, données, recommandations, health check compris. Format aligné sur l'exemple du référentiel :
+```
+<horodatage> | <méthode> <chemin> | <statut> | latency_ms=<X> | user=<username|anon>
+```
+Niveau `WARNING` si le statut renvoyé est ≥ 500, `INFO` sinon. Exemple réel capturé (07/08/2026) :
+```
+GET /api/health/ | 200 | latency_ms=1.3 | user=anon
+GET /api/data/pieces/ | 200 | latency_ms=34.8 | user=jury_c20
+```
+
+**Journalisation Django** : configuration `LOGGING` dans `config/settings.py` — sortie console + fichier `logs/app.log` (rotation 5 Mo × 3, non versionné). Loggers dédiés `maintenance` et `inventory` en plus du logger `django` standard — c'est ce logger `maintenance` que réutilise le middleware ci-dessus.
 
 **Endpoint de santé** : `GET /api/health/` (public, sans authentification) vérifie la connexion base de données et si `GROQ_API_KEY` est configurée. Retourne `503` si la base de données est inaccessible.
 

@@ -36,6 +36,20 @@ flowchart TD
 | **Groq pour les recommandations en langage naturel** | Voir `docs/benchmark_ia.md` — gratuit, latence faible, API compatible OpenAI (portabilité). |
 | **Modèles chargés en lecture seule par le backend** (`ml_api/model_registry.py`) | Sépare clairement l'entraînement (hors ligne, `src/ml/`) de l'inférence (API), pattern MLOps standard qui évite de ré-entraîner un modèle à chaque requête. |
 
+## Dépendances et services externes
+
+| Catégorie | Dépendance | Rôle |
+|---|---|---|
+| Backend | Django 5, Django REST Framework, `djangorestframework-simplejwt`, `drf-spectacular` | API, auth JWT, doc OpenAPI |
+| Base de données | PostgreSQL 16 (prod/Docker), SQLite (local/CI) | Stockage relationnel |
+| ML | scikit-learn, XGBoost, SHAP, pandas, joblib | Entraînement et explicabilité des modèles |
+| Frontend | React 19, Vite, Recharts, `lucide-react` | Interface, graphiques, icônes |
+| Service externe | Groq API (Llama 3.3 70B) | Recommandations en langage naturel — voir `docs/benchmark_ia.md` et `docs/service_ia.md` ; **optionnel** (repli par règles si absent) |
+| Qualité | pytest, pytest-cov, ruff (backend), Vitest, Testing Library (frontend) | Tests et lint |
+| Infrastructure | Docker, Docker Compose, GitHub Actions | Packaging et CI/CD |
+
+Liste exhaustive et versionnée dans `requirements.txt` (racine + `src/backend/`) et `src/frontend/package.json`.
+
 ## Flux de données
 
 1. **Collecte** (`src/collect/`) : dataset public + génération synthétique documentée.
@@ -45,11 +59,30 @@ flowchart TD
 5. **Exposition** : deux APIs REST distinctes, authentifiées par JWT.
 6. **Restitution** : dashboard React consommant les deux APIs + les recommandations IA.
 
+## Diagramme de flux applicatif (requête utilisateur)
+
+```mermaid
+flowchart LR
+    U[Utilisateur] --> I[Interface React]
+    I -->|POST /api/ml/predict-failure/| A[API Django]
+    A --> M[Modèle chargé en cache]
+    M --> A
+    A --> B[(PostgreSQL / SQLite)]
+    A -->|journalisation| B
+    A --> I
+    I --> U
+```
+
+Répond aux trois questions du référentiel : la donnée entre par l'interface (formulaire de mesures capteur), elle est transformée/exposée par l'API Django (validation, appel modèle, journalisation en base), et le modèle IA intervient entre la validation de l'entrée et la construction de la réponse JSON.
+
 ## Preuve de concept
 
-Le flux ci-dessus est **fonctionnel de bout en bout en environnement local** (vérifié : collecte réelle du dataset UCI, entraînement réel des deux modèles, API testée par requêtes HTTP réelles, interface testée par interactions réelles dans un navigateur — voir l'historique de commits pour le détail de chaque vérification). Un déploiement en environnement de pré-production distant (Render/Railway) est identifié comme approfondissement de Phase B, non bloquant pour la démonstration des compétences.
+**Niveau atteint : Bon** (flux documenté, testé, avec gestion d'erreurs — cf. grille du référentiel : Minimal / Correct / **Bon** / Excellent).
+
+Le flux ci-dessus est **fonctionnel de bout en bout en environnement local** (vérifié : collecte réelle du dataset UCI, entraînement réel des deux modèles, API testée par requêtes HTTP réelles, interface testée par interactions réelles dans un navigateur — voir l'historique de commits pour le détail de chaque vérification).
+
+**Conclusion : continuer.** Rien ne justifie de corriger l'approche ou de réduire le périmètre — les 21 compétences ont une preuve fonctionnelle. Le seul écart avec le niveau "Excellent" est l'absence de déploiement en pré-production distant (Render/Railway), volontairement classé en Phase B, non bloquant pour la démonstration des compétences visées.
 
 ## Diagrammes complémentaires
 
-- Modèle de données : voir les migrations Django (`src/backend/*/migrations/0001_initial.py`) qui font foi de MPD.
-- Séquence d'une prédiction : Utilisateur → Frontend → `POST /api/ml/predict-failure/` → chargement modèle (cache) → réponse JSON → mise à jour de l'interface + journalisation (`ModelPredictionLog`).
+- Modèle de données : voir les migrations Django (`src/backend/*/migrations/0001_initial.py`) qui font foi de MPD, et `docs/mcd_mpd.md` pour une version lisible.

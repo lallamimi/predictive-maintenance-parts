@@ -1,6 +1,6 @@
 import logging
 
-from django.db.models import Count, Sum
+from django.db.models import Sum
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView

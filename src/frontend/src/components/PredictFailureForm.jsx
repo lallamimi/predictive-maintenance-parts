@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AlertOctagon, AlertTriangle, CheckCircle2, Search } from "lucide-react";
 import { mlApi } from "../api/client";
 
 const DEFAULTS = {
@@ -11,12 +12,14 @@ const DEFAULTS = {
 };
 
 const RISK_LABELS = { eleve: "Élevé", moyen: "Moyen", faible: "Faible" };
+const RISK_ICONS = { eleve: AlertOctagon, moyen: AlertTriangle, faible: CheckCircle2 };
 
 export default function PredictFailureForm() {
   const [form, setForm] = useState(DEFAULTS);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const RiskIcon = result ? RISK_ICONS[result.niveau_risque] : null;
 
   function updateField(name, value) {
     setForm((prev) => ({ ...prev, [name]: name === "type_produit" ? value : Number(value) }));
@@ -39,12 +42,16 @@ export default function PredictFailureForm() {
 
   return (
     <section aria-labelledby="predict-failure-title" className="panel">
-      <h2 id="predict-failure-title">Prédiction de panne</h2>
+      <h2 id="predict-failure-title"><Search size={19} aria-hidden="true" /> Prédiction de panne</h2>
       <form onSubmit={handleSubmit} className="predict-form">
         <label htmlFor="temp_air">Température air (K)</label>
         <input
           id="temp_air"
           type="number"
+          min="250"
+          max="350"
+          step="0.1"
+          required
           value={form.temperature_air_k}
           onChange={(e) => updateField("temperature_air_k", e.target.value)}
         />
@@ -53,6 +60,10 @@ export default function PredictFailureForm() {
         <input
           id="temp_process"
           type="number"
+          min="250"
+          max="350"
+          step="0.1"
+          required
           value={form.temperature_process_k}
           onChange={(e) => updateField("temperature_process_k", e.target.value)}
         />
@@ -61,17 +72,34 @@ export default function PredictFailureForm() {
         <input
           id="vitesse"
           type="number"
+          min="0"
+          max="5000"
+          step="1"
+          required
           value={form.vitesse_rotation_rpm}
           onChange={(e) => updateField("vitesse_rotation_rpm", e.target.value)}
         />
 
         <label htmlFor="couple">Couple (Nm)</label>
-        <input id="couple" type="number" value={form.couple_nm} onChange={(e) => updateField("couple_nm", e.target.value)} />
+        <input
+          id="couple"
+          type="number"
+          min="0"
+          max="150"
+          step="0.1"
+          required
+          value={form.couple_nm}
+          onChange={(e) => updateField("couple_nm", e.target.value)}
+        />
 
         <label htmlFor="usure">Usure outil (min)</label>
         <input
           id="usure"
           type="number"
+          min="0"
+          max="300"
+          step="1"
+          required
           value={form.usure_outil_min}
           onChange={(e) => updateField("usure_outil_min", e.target.value)}
         />
@@ -84,7 +112,7 @@ export default function PredictFailureForm() {
         </select>
 
         <button type="submit" disabled={loading}>
-          {loading ? "Analyse..." : "Analyser le risque"}
+          {loading ? "Analyse..." : (<><Search size={16} aria-hidden="true" /> Analyser le risque</>)}
         </button>
       </form>
 
@@ -92,10 +120,18 @@ export default function PredictFailureForm() {
 
       {result && (
         <div className={`predict-result risk-${result.niveau_risque}`} role="status">
-          <p>
-            <strong>{result.panne_predite ? "Panne probable" : "Pas de panne prévue"}</strong> — probabilité{" "}
-            {(result.probabilite * 100).toFixed(1)} % (risque {RISK_LABELS[result.niveau_risque]})
-          </p>
+          <span className="result-icon" aria-hidden="true">
+            <RiskIcon size={22} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p>
+              <strong>{result.panne_predite ? "Panne probable" : "Pas de panne prévue"}</strong> — probabilité{" "}
+              {(result.probabilite * 100).toFixed(1)} % (risque {RISK_LABELS[result.niveau_risque]})
+            </p>
+            <div className="risk-bar-track">
+              <div className="risk-bar-fill" style={{ width: `${Math.min(100, result.probabilite * 100)}%` }} />
+            </div>
+          </div>
         </div>
       )}
     </section>

@@ -11,6 +11,7 @@ Usage :
     python manage.py load_dataset --reset   (vide les tables avant import)
 """
 
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -20,9 +21,21 @@ from django.db import transaction
 from inventory.models import Fournisseur, PieceRechange
 from maintenance.models import InterventionPiece, LectureCapteur
 
-BASE_DIR = Path(__file__).resolve().parents[5]  # .../predictive-maintenance-parts
-SYNTHETIC_DIR = BASE_DIR / "data" / "synthetic"
-PROCESSED_PATH = BASE_DIR / "data" / "processed" / "dataset_final.csv"
+
+def _resolve_data_dir() -> Path:
+    """cf. ml_api/model_registry.py : meme classe de bug (IndexError sur
+    parents[N] evalue sans condition), meme correction (paresseux, pilote
+    par variable d'environnement en conteneur ou la structure de dossiers
+    est aplatie)."""
+    env_value = os.getenv("DATA_DIR")
+    if env_value:
+        return Path(env_value)
+    return Path(__file__).resolve().parents[5] / "data"  # .../predictive-maintenance-parts/data
+
+
+DATA_DIR = _resolve_data_dir()
+SYNTHETIC_DIR = DATA_DIR / "synthetic"
+PROCESSED_PATH = DATA_DIR / "processed" / "dataset_final.csv"
 
 
 class Command(BaseCommand):

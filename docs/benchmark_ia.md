@@ -5,15 +5,17 @@
 **Contexte métier** : le gestionnaire de stock et le technicien ont besoin de recommandations lisibles ("commander telle pièce sous 5 jours, stock critique") plutôt que de chiffres bruts.
 **Entrées** : les KPI calculés par l'API (`/api/data/interventions/kpi/`, `/api/data/pieces/sous_seuil/`) et les prédictions du modèle IA.
 **Sorties attendues** : un texte court en français, exploitable directement dans le tableau de bord.
-**Contraintes** : projet fictif/étudiant → budget nul obligatoire, latence acceptable (< 5s), aucune donnée personnelle envoyée (uniquement des agrégats techniques), hébergement des données de préférence hors UE non recherché en priorité vu le fictif du projet mais évalué par principe.
+**Contraintes** : projet fictif/étudiant → budget nul obligatoire, latence acceptable (< 5s), aucune donnée personnelle envoyée (uniquement des agrégats techniques), hébergement des données de préférence hors UE non recherché en priorité vu le fictif du projet mais évalué par principe, accessibilité (le texte généré doit rester lisible par un lecteur d'écran — texte brut, pas de mise en forme complexe).
+
+**Critères de réussite** : réponse en moins de 5 secondes ; texte en français, cohérent avec les chiffres fournis en entrée (pas de valeur inventée) ; en cas d'indisponibilité du service, une réponse de repli est renvoyée sans jamais d'erreur 500 (vérifié — voir [`service_ia.md`](service_ia.md)).
 
 ## Services comparés
 
-| Service | Fonctionnel | Technique | Coût | Décision |
-|---|---|---|---|---|
-| **Groq (Llama 3.3 70B)** | Fort — génération de texte de bonne qualité, respecte des consignes de format strictes (JSON, longueur) | Fort — API compatible OpenAI, SDK simple, latence très faible (inférence optimisée matériel LPU) | **Gratuit** (offre développeur généreuse au moment du choix) | **Retenu** |
-| **OpenAI (GPT-4o-mini)** | Fort — qualité de génération très bonne, large écosystème | Fort — documentation excellente, très utilisé donc bien supporté | Payant dès le premier appel (facturation à l'usage) | Alternative — écarté pour ce projet étudiant sans budget, à reconsidérer si le projet devient réel |
-| **Mistral (mistral-small)** | Moyen à fort — bonne qualité en français (modèle européen), pertinent pour un contexte francophone | Fort — API simple, hébergement européen (avantage RGPD potentiel) | Offre gratuite limitée (quota bas), payant au-delà | Alternative sérieuse — écarté principalement pour la limite de quota gratuit trop juste pour du test itératif pendant le développement |
+| Service | Fonctionnel | Technique | Coût | Risque | Monitoring possible | Décision |
+|---|---|---|---|---|---|---|
+| **Groq (Llama 3.3 70B)** | Fort — génération de texte de bonne qualité, respecte des consignes de format strictes (JSON, longueur) | Fort — API compatible OpenAI, SDK simple, latence très faible (inférence optimisée matériel LPU) | **Gratuit** (offre développeur généreuse au moment du choix) | Faible — offre gratuite pourrait évoluer, mais API stable et documentée | Oui — appel HTTP standard, facile à logger (implémenté, voir `service_ia.md`) | **Retenu** |
+| **OpenAI (GPT-4o-mini)** | Fort — qualité de génération très bonne, large écosystème | Fort — documentation excellente, très utilisé donc bien supporté | Payant dès le premier appel (facturation à l'usage) | Moyen — risque budgétaire pour un projet sans financement | Oui — écosystème mature (dashboards d'usage natifs) | Alternative — écarté pour ce projet étudiant sans budget, à reconsidérer si le projet devient réel |
+| **Mistral (mistral-small)** | Moyen à fort — bonne qualité en français (modèle européen), pertinent pour un contexte francophone | Fort — API simple, hébergement européen (avantage RGPD potentiel) | Offre gratuite limitée (quota bas), payant au-delà | Moyen — quota bas risque de bloquer le développement itératif | Oui — API HTTP standard, même principe que Groq | Alternative sérieuse — écarté principalement pour la limite de quota gratuit trop juste pour du test itératif pendant le développement |
 
 ## Raisons du choix
 

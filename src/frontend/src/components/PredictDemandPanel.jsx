@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CheckCircle2, Package, Pencil, Save, TrendingUp } from "lucide-react";
 import { dataApi, mlApi } from "../api/client";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -68,7 +69,7 @@ export default function PredictDemandPanel() {
 
   return (
     <section aria-labelledby="predict-demand-title" className="panel">
-      <h2 id="predict-demand-title">Prévision de demande de pièces</h2>
+      <h2 id="predict-demand-title"><Package size={19} aria-hidden="true" /> Prévision de demande de pièces</h2>
 
       <label htmlFor="piece-select">Pièce de rechange</label>
       <select id="piece-select" value={pieceId} onChange={(e) => setPieceId(e.target.value)}>
@@ -80,24 +81,29 @@ export default function PredictDemandPanel() {
       </select>
 
       <button type="button" onClick={handlePredict} disabled={loading || !pieceId}>
-        {loading ? "Calcul..." : "Prévoir la demande du mois prochain"}
+        {loading ? "Calcul..." : (<><TrendingUp size={16} aria-hidden="true" /> Prévoir la demande du mois prochain</>)}
       </button>
 
       {error && <p role="alert" className="error-message">{error}</p>}
 
       {result && (
         <div className="predict-result" role="status">
-          <p>
-            <strong>{result.nom_piece}</strong> : demande prévue ≈ <strong>{result.demande_prevue}</strong> unités le
-            mois prochain.
-          </p>
-          {result.avertissement && <p className="warning">{result.avertissement}</p>}
+          <span className="result-icon" aria-hidden="true">
+            <Package size={22} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p>
+              <strong>{result.nom_piece}</strong> : demande prévue ≈ <strong>{result.demande_prevue}</strong> unités le
+              mois prochain.
+            </p>
+            {result.avertissement && <p className="warning">{result.avertissement}</p>}
+          </div>
         </div>
       )}
 
       {peutGererStock && pieceSelectionnee && (
         <form onSubmit={handleAjusterStock} className="stock-form" aria-labelledby="stock-form-title">
-          <h3 id="stock-form-title">Ajuster le stock — {pieceSelectionnee.nom}</h3>
+          <h3 id="stock-form-title"><Pencil size={15} aria-hidden="true" /> Ajuster le stock — {pieceSelectionnee.nom}</h3>
           <label htmlFor="nouveau-stock">Nouveau stock (actuel : {pieceSelectionnee.stock_actuel})</label>
           <input
             id="nouveau-stock"
@@ -107,8 +113,12 @@ export default function PredictDemandPanel() {
             onChange={(e) => setNouveauStock(e.target.value)}
             required
           />
-          <button type="submit">Enregistrer</button>
-          {stockMessage && <p role="status">{stockMessage}</p>}
+          <button type="submit"><Save size={16} aria-hidden="true" /> Enregistrer</button>
+          {stockMessage && (
+            <p role="status" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <CheckCircle2 size={15} aria-hidden="true" /> {stockMessage}
+            </p>
+          )}
           {stockError && <p role="alert" className="error-message">{stockError}</p>}
         </form>
       )}

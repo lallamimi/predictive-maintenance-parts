@@ -22,3 +22,12 @@
 ## Impact sur le projet
 
 Cette veille confirme la pertinence du choix technique du projet (modèle de classification pour la prédiction de panne + prévision de demande de pièces) et fixe un ordre de grandeur réaliste pour l'évaluation du modèle : un taux de détection très supérieur à 97% sur des données aussi simples que AI4I 2020 serait suspect (sur-apprentissage), un taux nettement inférieur à 80% signalerait un modèle insuffisant.
+
+## Réglementation et considérations transverses
+
+*Point de veille, pas un avis juridique : en cas de mise en production réelle, une revue par un juriste spécialisé resterait nécessaire.*
+
+- **RGPD** : traité en détail dans [`docs/rgpd.md`](rgpd.md), rédigé avant la création du modèle `User`. Les données de maintenance/capteurs ne concernent pas des personnes physiques et sont hors périmètre RGPD ; seul le compte utilisateur (authentification, rôle) l'est.
+- **AI Act européen (Règlement (UE) 2024/1689)** : entré en vigueur en août 2024, obligations applicables progressivement jusqu'en 2027. Classe les systèmes d'IA par niveau de risque (inacceptable / élevé / limité / minimal). Un outil d'aide à la décision pour la maintenance et la gestion de stock, à usage interne et sans décision automatisée irréversible sur une personne, relève a priori d'un risque limité à minimal — à la différence d'un système de sécurité critique (ex. gestion directe d'infrastructures). Point à surveiller si le périmètre du projet évoluait vers un usage plus critique (ex. arrêt automatique d'une machine sans validation humaine).
+- **Sécurité des données** : capteurs et flux applicatifs déjà couverts par [`docs/monitoring.md`](monitoring.md) (journalisation, seuils d'alerte) et [`docs/rgpd.md`](rgpd.md) (secrets hors code, CORS restreint, mots de passe hachés).
+- **Accessibilité** : critères intégrés dès la rédaction des user stories ([`docs/cahier_des_charges.md`](cahier_des_charges.md)), pas ajoutés après coup — voir aussi C17 (aria-labels, rôles d'alerte sur le frontend).
